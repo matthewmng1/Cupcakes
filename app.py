@@ -5,14 +5,15 @@ from models import db, connect_db, Cupcake
 app = Flask(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///cupcakes_db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONs'] = False
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = "cupcakez"
 
 connect_db(app)
 
 @app.route('/')
-def home_page():
-  return render_template('home_page.html')
+def index():
+  cupcakes = Cupcake.query.all()
+  return render_template('index.html', cupcakes=cupcakes)
 
 @app.route('/api/cupcakes')
 def get_all_cupcakes():
@@ -26,11 +27,10 @@ def get_cupcake(id):
 
 @app.route('/api/cupcakes', methods=['POST'])
 def create_cupcake():
-  new_cupcake = Cupcake(flavor=request.json["flavor"], size=request.json["size"], rating=request.json["rating"])
+  new_cupcake = Cupcake(flavor=request.json["flavor"], size=request.json["size"], rating=request.json["rating"], image=request.json["image"] or None)
   db.session.add(new_cupcake)
   db.session.commit()
-  response_json = jsonify(cupcake=new_cupcake.serialize())
-  return jsonify(response_json, 201)
+  return (jsonify(cupcake=new_cupcake.to_dict()), 201)
 
 @app.route('/api/cupcakes/<int:id>', methods=['PATCH'])
 def update_cupcake(id):
@@ -43,26 +43,9 @@ def update_cupcake(id):
   db.session.commit()
   return jsonify(cupcake=cupcake.serialize())
 
-@app.route('api/cupcakes/<int:id>', methods=['DELETE'])
+@app.route('/api/cupcakes/<int:id>', methods=['DELETE'])
 def delete_cupcake(id):
   cupcake = Cupcake.query.get_or_404(id)
   db.session.delete(cupcake)
   db.session.commit()
-  return jsonify(message="Deleted")
-
-  
-#   Make routes for the following:
-
-# PATCH /api/cupcakes/[cupcake-id]
-# Update a cupcake with the id passed in the URL and flavor, size, rating and image data from the body of the request. You can always assume that the entire cupcake object will be passed to the backend.
-
-# This should raise a 404 if the cupcake cannot be found.
-
-# Respond with JSON of the newly-updated cupcake, like this: {cupcake: {id, flavor, size, rating, image}}.
-
-# DELETE /api/cupcakes/[cupcake-id]
-# This should raise a 404 if the cupcake cannot be found.
-
-# Delete cupcake with the id passed in the URL. Respond with JSON like {message: "Deleted"}.
-
-# Test these routes in Insomnia.
+  return jsonify(message = "Deleted")
